@@ -118,7 +118,7 @@ int CALLBACK WinMain(
 	//만약 두개의 메모장이 실행되고있다면 , 두개의 인스턴스 핸들값은 다르다. 이를 통해 os에서 구분한다. 
 	/*보통 프로그램이 메모리 상에 올라가 있는 시작주소값을 가지고 있다.*/
         WindowClass.lpfnWndProc   = WndProc; 
-        WindowClass.lpszClassName = "HandmadeWindowClass"; 
+        WindowClass.lpszClassName = "projClass"; 
 	//WindowClass.hbrBackground=(HBRUSH)GetStockObject(BLACK_BRUSH);
 	WindowClass.hCursor = LoadCursor(NULL, IDC_CROSS);
 	
@@ -127,7 +127,7 @@ int CALLBACK WinMain(
 			CreateWindowEx(
 				       NULL,
 				       WindowClass.lpszClassName,
-				       "handmade",
+				       "testproj",
 				       WS_OVERLAPPEDWINDOW|WS_VISIBLE,
 				       CW_USEDEFAULT,
 				       CW_USEDEFAULT,
@@ -189,7 +189,6 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 		Running = false; 
 		break;
 	case WM_ACTIVATEAPP:
-		OutputDebugString("wm_activiteapp\n");
 		break;
 	case WM_CHAR:
 		if((TCHAR)wParam== 32){

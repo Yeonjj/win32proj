@@ -1,0 +1,79 @@
+#pragma once
+#include <Windows.h>
+#include "preheaderinclude.h"
+
+#define Internal_vaild static 
+#define local_persist static
+#define grobal_variable static
+
+//TODO: 싱글톤 구현 이벤트루프관리 모든 유저 인풋을 관리. 
+class ApplicationManager final
+{
+private:
+	ApplicationManager() = default;
+	~ApplicationManager() = default;
+private:
+	static ApplicationManager *AppManger;
+
+public:
+	inline static ApplicationManager* getAppManger() {
+		if (AppManger == nullptr) {
+			AppManger = new ApplicationManager();
+		}
+		return AppManger; 
+	}
+};
+ApplicationManager*  ApplicationManager::AppManger;
+
+//status 구현
+class MasageStatus
+{
+public:
+};
+
+
+//appmain에서만 아래 함수들을 호출할 수 있습니다. 
+inline Internal_vaild LRESULT CALLBACK WindowProcedure(	HWND hwnd, 
+														UINT message, 
+														WPARAM wParam, 
+														LPARAM lParam)
+{
+	switch (message)
+	{
+	case WM_DESTROY:
+		::PostQuitMessage(0);
+		return 0;
+
+	}
+	return ::DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+inline Internal_vaild int ApplicationMain
+(HINSTANCE hInst, HINSTANCE hPrevInst, char * cmdParam, int cmdShow)
+{
+
+	//싱글톤 객체 생성 
+	ApplicationManager* AppManager = ApplicationManager::getAppManger();
+
+	wchar_t className[] = L"testingproj";
+
+	WindowClass winClass(WindowProcedure, className, hInst);
+	winClass.Register();
+
+	WindowMaker win(className, hInst);
+
+	MSG  msg;
+	int status;
+	//TODO: 이벤트루프 구성 delegate를 호출할 것이다. delegate는 인터페이스로서 사용자가 구현한다. 
+	//팩토리 페턴사용해서 각 메시지마다 해당 delegate를 호출 할 것이다. 
+	while ((status = ::GetMessage(&msg, 0, 0, 0)) != 0)
+	{
+		if (status == -1)
+			return -1;
+		::DispatchMessage(&msg);
+	}
+
+	return msg.wParam;
+}
+
+
