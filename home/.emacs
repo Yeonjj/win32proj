@@ -1,6 +1,12 @@
 
 ;; color themes
 (load-file "/home/.emacs.d/themes/gruvbox-dark-theme.el")
+
+;;font
+(add-to-list 'default-frame-alist '(font .  "Consolas"))
+(set-face-attribute 'default t :font  "Consolas")
+
+
 ;; remove scroll bar
 (scroll-bar-mode -1)
 ;; disable tool bar
@@ -84,3 +90,4 @@
               "~/.emacs.d/elpa/yasnippet-0.9.1")
 (require 'yasnippet)
 (yas-global-mode 1)
+

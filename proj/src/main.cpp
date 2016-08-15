@@ -18,43 +18,40 @@ typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
 
-
 using namespace std;
 
 global_variable bool Running; // = 0;
 
-global_variable BITMAPINFO BitmapInfo;
-global_variable	void *BitmapMemory;
-global_variable int BitmapWidth;
-global_variable int BitmapHeight;
-global_variable int BytesPerPixel = 4;
+struct win32_screen_buffer
+{
+	BITMAPINFO BitmapInfo;
+	void *BitmapMemory;
+	int BitmapWidth;
+	int BitmapHeight;
+	int BytesPerPixel;
+	int Pitch;
+};
+
+global_variable win32_screen_buffer gBitmapBuffer;
 
 internal void
-RenderWindow(int xoffset, int yoffset)
+RenderWindow(win32_screen_buffer &buffer, int xoffset, int yoffset)
 {
-	int Width = BitmapWidth;
-	int Height = BitmapHeight;
-	uint8 *RGB = (uint8 *)BitmapMemory;
-	for(int Y = 0;
-	    Y < BitmapHeight;
+	uint8 *Row = (uint8 *)buffer.BitmapMemory;
+	for(int Y = 0; 
+	    Y < buffer.BitmapHeight;
 	    ++Y)
 	{
+		uint32 *Pixel = (uint32 *)Row;
 		for(int X = 0;
-		    X < BitmapWidth;
+		    X < buffer.BitmapWidth;
 		    X++)
 		{
-			*RGB = X+xoffset;
-			++RGB;
-			
-			*RGB = Y+yoffset;
-			++RGB;
-			
-			*RGB = 0;
-			++RGB;
-				
-			*RGB = 0;
-			++RGB;
+			uint8 blue = (X+xoffset);
+			uint8 green = (Y+yoffset);
+			*Pixel++ = ((green << 8) | blue);
 		}
+		Row += buffer.Pitch;
 	}
 }
 
@@ -62,49 +59,91 @@ RenderWindow(int xoffset, int yoffset)
 //device independent bitmap1
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
+//bitmap sturcture
+/*
+  file header BITMAPFILEHEADER
+  image header BITMAPINFOHEADER
+  color table
+  pixel date
+*/
 internal void
-ResizeDIBSection(int Width, int Height)
+ResizeDIBSection(win32_screen_buffer &buffer, int Width, int Height)
 {
-	if(BitmapMemory)
+	//BITMAPINFOHEADER
+	if(buffer.BitmapMemory)
         {
-		VirtualFree(BitmapMemory, 0, MEM_RELEASE);
+		VirtualFree(buffer.BitmapMemory, 0, MEM_RELEASE);
 	}
-	BitmapWidth = Width;
-	BitmapHeight = Height;
-       	
-	BitmapInfo.bmiHeader.biSize = sizeof(BitmapInfo.bmiHeader);
-	BitmapInfo.bmiHeader.biWidth = BitmapWidth;
-	BitmapInfo.bmiHeader.biHeight = -BitmapHeight;
-	BitmapInfo.bmiHeader.biPlanes = 1;
-	BitmapInfo.bmiHeader.biBitCount = 32; 
-	BitmapInfo.bmiHeader.biCompression = BI_RGB;
+	buffer.BitmapWidth = Width;
+	buffer.BitmapHeight = Height;
+       	buffer.BytesPerPixel = 4;
+	buffer.BitmapInfo.bmiHeader.biSize = sizeof(buffer.BitmapInfo.bmiHeader);
+	buffer.BitmapInfo.bmiHeader.biWidth = buffer.BitmapWidth;
+	buffer.BitmapInfo.bmiHeader.biHeight = -buffer.BitmapHeight;
+	buffer.BitmapInfo.bmiHeader.biPlanes = 1;
+	buffer.BitmapInfo.bmiHeader.biBitCount = 32; 
+	buffer.BitmapInfo.bmiHeader.biCompression = BI_RGB;
 	
-	int BitmapMemorySize = (BitmapWidth*BitmapHeight)*BytesPerPixel;
-	BitmapMemory = VirtualAlloc(0, BitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
+	int BitmapMemorySize = (buffer.BitmapWidth*buffer.BitmapHeight)*buffer.BytesPerPixel;
+	buffer.BitmapMemory = VirtualAlloc(0, BitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
+	buffer.Pitch = buffer.BitmapWidth*buffer.BytesPerPixel;
 
-	RenderWindow(0,0);
+	RenderWindow(buffer,0,0);
 }
 
 internal void
-MyUpdateWindow(HDC hdc, RECT *WindowRect, int x, int y, int Width, int Height)
+MyUpdateWindow(HDC hdc, win32_screen_buffer &buffer, int x, int y, int Width, int Height)
 {
-	int WindowWidth = WindowRect->right - WindowRect->left;
-	int WindowHeight = WindowRect->bottom - WindowRect->top;
+	// int WindowWidth = WindowRect->right - WindowRect->left;
+	// int WindowHeight = WindowRect->bottom - WindowRect->top;
 	
 	StretchDIBits(hdc,
 		      /*
 		      x, y, Width, Height, // wm paint 메시지로 다시 그릴 사각형 
 		      x, y, Width, Height, // src
 		      */
-		      0,0,BitmapWidth, BitmapHeight,
-		      0,0,WindowWidth, WindowHeight,
-		      BitmapMemory,
-		      &BitmapInfo,
+		      0, 0, Width, Height,
+		      0, 0, buffer.BitmapWidth, buffer.BitmapHeight,
+		      buffer.BitmapMemory,
+		      &buffer.BitmapInfo,
 		      DIB_RGB_COLORS,SRCCOPY
 		      );
 }
 
+/*DWORD WINAPI
+ThreadProc(LPVOID arg)
+{
+	char *str = (char*)arg;
+	while(true)
+	{
+		OutputDebugString(str);
+		Sleep(1000);
+		while(Running){
+			MSG Message;
+			while(PeekMessage(&Message, 0, 0, 0, PM_REMOVE)){
+				if(Message.message == WM_QUIT){
+					Running = false;
+				}
+				TranslateMessage(&Message);
+				DispatchMessage(&Message);
+			}
+			if( xoffset<=255 || yoffset<=255 )
+				{
+					xoffset++;
+					yoffset++;
+				}
+			else
+				{
+					xoffset = 0;
+					yoffset = 0;
+				}
+			RenderWindow(xoffset, yoffset);
+			InvalidateRect(WindowHandle, 0, false);
+		}
+	}
+	return 0;
+}
+*/
 int CALLBACK WinMain(
 		     HINSTANCE hInstance,
 		     HINSTANCE hPrevInstance,
@@ -112,8 +151,13 @@ int CALLBACK WinMain(
 		     int       nCmdShow
 )
 {
-	WNDCLASS WindowClass = {}; 	
-	WindowClass.style         = CS_OWNDC|CS_HREDRAW|CS_VREDRAW;
+	// char *str = "yay it works!!\n";
+	// DWORD threadID;
+	// HANDLE ThreadHandle = CreateThread(0, 0, ThreadProc, str, 0, &threadID);
+	// CloseHandle(ThreadHandle); //return thread to os
+	WNDCLASS WindowClass = {};
+	//TODO:style 과 dc 화면을 다시 그리는 것과의 관계
+	WindowClass.style         = CS_HREDRAW|CS_VREDRAW;
         WindowClass.hInstance     = hInstance; 
 	//만약 두개의 메모장이 실행되고있다면 , 두개의 인스턴스 핸들값은 다르다. 이를 통해 os에서 구분한다. 
 	/*보통 프로그램이 메모리 상에 올라가 있는 시작주소값을 가지고 있다.*/
@@ -138,17 +182,40 @@ int CALLBACK WinMain(
 				       hInstance,
 				       NULL);
 		if(WindowHandle){
+			int xoffset = 0;
+			int yoffset = 0;
 			Running = true; 
 			while(Running){
 				MSG Message;
-				if(GetMessage(&Message, 0, 0, 0) > 0){
+				while(PeekMessage(&Message, 0, 0, 0, PM_REMOVE)){
+					if(Message.message == WM_QUIT){
+						Running = false;
+					}
 					TranslateMessage(&Message);
 					DispatchMessage(&Message);
-				}else{
-					break;
 				}
+				if( xoffset<=255 || yoffset<=255 )
+				{
+					xoffset++;
+					yoffset++;
+				}
+				else
+				{
+					xoffset = 0;
+					yoffset = 0;
+				}
+
+
+				HDC hdc = GetDC(WindowHandle);
+				RECT rect;
+				GetClientRect(WindowHandle, &rect);
+				int wndWidth = rect.right - rect.left;
+				int wndHeight = rect.bottom - rect.top;
+				ResizeDIBSection(gBitmapBuffer, wndWidth, wndHeight);			 
+				RenderWindow(gBitmapBuffer, xoffset, yoffset);
+				MyUpdateWindow(hdc, gBitmapBuffer, 0, 0,  wndWidth, wndHeight);
+				ReleaseDC(WindowHandle, hdc);
 			}
-		       
 		}else{
 			//TODO: 
 		}
@@ -175,11 +242,6 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 	{
 	case WM_SIZE:
 	{
-		RECT ClientRect; 
-		GetClientRect(hWnd, &ClientRect);
-		int Width = ClientRect.right - ClientRect.left;
-		int Height = ClientRect.bottom - ClientRect.top;
-		ResizeDIBSection(Width, Height);
 		break;
 	}
 	case WM_DESTROY:
@@ -210,12 +272,9 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 		int Y = ps.rcPaint.top;		
 		int Height = ps.rcPaint.bottom - ps.rcPaint.top;
 		int Width = ps.rcPaint.right - ps.rcPaint.left;
-
 		RECT ClientRect;
-		GetClientRect(hWnd, &ClientRect);
-		
-		MyUpdateWindow(hdc, &ClientRect, X, Y, Width, Height);
-
+		GetClientRect(hWnd, &ClientRect);		
+		MyUpdateWindow(hdc, gBitmapBuffer, X, Y, Width, Height);
 		TextOut(hdc,100,100,str,strlen(str));		
 		EndPaint(hWnd,&ps);
 		return 0;
@@ -224,6 +283,6 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 		return DefWindowProc(hWnd, uMsg, wParam, lParam); //window will handle meg 
 	}
 	return 0;
-}
+} 
 /*win32 lib provides twe structure wndclass wndclassex. this is infomation about this programm that would be informed to os */
 

@@ -1,0 +1,25 @@
+논리적 분리 정도에 따라 
+
+메모리에 코드가 있다고 하자 
+cpu는 코드며 레지스터며드을 알고있어야한다. 이것을 통틀어 cpu state라고 하자. 프로세스는 메모리레이아웃을 관리한다. 
+그러나 실제코드와 레지스터는 스레드의 몫이다. 
+logical cores = cpu안에 
+
+
+프로세서는 소프트웨어 스레드를 실행하는느 하드웨어 장치이다. 즉, 프로세스가 스레드를 시분할방법으로 실행하는 주체이다. 멀티프로세서는 복수의 '하드웨어'프로세서로
+구성되어있다. 다중프로세서 아키텍처에서 시간간의 단위는 사이클이다. 
+
+다중프로세서에서 
+
+프로세서와 메모리의 관계
+
+SMP 
+
+MUMA 
+
+질문, 캐시가 있는 SMP, NUMA 아키텍처에서 스피닝은 적은 자원을 소모한다고 한다. 왜냐하면 처음 메모리를 읽을때 캐시미스를 격은뒤에 해당 데이터를 캐시라인에 담아두고
+그로부터 읽기 때문이다. 그렇다면 캐시는 어떻게 주메모리에서 다른 스레드에의해 바뀌는 것을 인지하는가? 캐시도 역시 계속해서 주메모리에 값이 바뀌는 것을 체크하는가?
+
+usally Smp and numa architecture with cach meomory use the spinning so that we can use less resources while we are chaeking if memory we want to read is being us
+using by other thread, reading data from cach. but how and who is response to check if the cached data in main memoy changed by other thread or not? 
+is that what os dose? or is hardware designed to do that?  
