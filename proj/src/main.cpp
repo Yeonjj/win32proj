@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <stdint.h>
+#include <dsound.h>
 
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "Gdi32.lib")
@@ -21,7 +22,10 @@ typedef int64_t int64;
 using namespace std;
 
 global_variable bool Running; // = 0;
+global_variable	int xoffset;  // = 0;
+global_variable	int yoffset;  // = 0;
 
+//TODO:pitch 없에기 
 struct win32_screen_buffer
 {
 	BITMAPINFO BitmapInfo;
@@ -35,17 +39,27 @@ struct win32_screen_buffer
 global_variable win32_screen_buffer gBitmapBuffer;
 
 internal void
+initDSound(void)
+{
+	//TODO: load the lib
+	HMODULE soundLib = LoadLibraryA("dsound.dll");
+	//TODO: get a directsound object!
+	//TODO: creaet a primary buffer 
+	//TODO: create a secondary buffer
+	if(soundLib)
+	{
+		
+	}
+}
+
+internal void
 RenderWindow(win32_screen_buffer &buffer, int xoffset, int yoffset)
 {
 	uint8 *Row = (uint8 *)buffer.BitmapMemory;
-	for(int Y = 0; 
-	    Y < buffer.BitmapHeight;
-	    ++Y)
+	for(int Y = 0; Y < buffer.BitmapHeight; ++Y)
 	{
 		uint32 *Pixel = (uint32 *)Row;
-		for(int X = 0;
-		    X < buffer.BitmapWidth;
-		    X++)
+		for(int X = 0; X < buffer.BitmapWidth; X++)
 		{
 			uint8 blue = (X+xoffset);
 			uint8 green = (Y+yoffset);
@@ -77,6 +91,8 @@ ResizeDIBSection(win32_screen_buffer &buffer, int Width, int Height)
 	buffer.BitmapWidth = Width;
 	buffer.BitmapHeight = Height;
        	buffer.BytesPerPixel = 4;
+	buffer.Pitch = buffer.BitmapWidth*buffer.BytesPerPixel;
+
 	buffer.BitmapInfo.bmiHeader.biSize = sizeof(buffer.BitmapInfo.bmiHeader);
 	buffer.BitmapInfo.bmiHeader.biWidth = buffer.BitmapWidth;
 	buffer.BitmapInfo.bmiHeader.biHeight = -buffer.BitmapHeight;
@@ -86,7 +102,6 @@ ResizeDIBSection(win32_screen_buffer &buffer, int Width, int Height)
 	
 	int BitmapMemorySize = (buffer.BitmapWidth*buffer.BitmapHeight)*buffer.BytesPerPixel;
 	buffer.BitmapMemory = VirtualAlloc(0, BitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
-	buffer.Pitch = buffer.BitmapWidth*buffer.BytesPerPixel;
 
 	RenderWindow(buffer,0,0);
 }
@@ -94,9 +109,6 @@ ResizeDIBSection(win32_screen_buffer &buffer, int Width, int Height)
 internal void
 MyUpdateWindow(HDC hdc, win32_screen_buffer &buffer, int x, int y, int Width, int Height)
 {
-	// int WindowWidth = WindowRect->right - WindowRect->left;
-	// int WindowHeight = WindowRect->bottom - WindowRect->top;
-	
 	StretchDIBits(hdc,
 		      /*
 		      x, y, Width, Height, // wm paint 메시지로 다시 그릴 사각형 
@@ -109,8 +121,8 @@ MyUpdateWindow(HDC hdc, win32_screen_buffer &buffer, int x, int y, int Width, in
 		      DIB_RGB_COLORS,SRCCOPY
 		      );
 }
-
-/*DWORD WINAPI
+/*
+DWORD WINAPI
 ThreadProc(LPVOID arg)
 {
 	char *str = (char*)arg;
@@ -144,6 +156,7 @@ ThreadProc(LPVOID arg)
 	return 0;
 }
 */
+
 int CALLBACK WinMain(
 		     HINSTANCE hInstance,
 		     HINSTANCE hPrevInstance,
@@ -151,6 +164,7 @@ int CALLBACK WinMain(
 		     int       nCmdShow
 )
 {
+	ResizeDIBSection(gBitmapBuffer, 1184, 810);
 	// char *str = "yay it works!!\n";
 	// DWORD threadID;
 	// HANDLE ThreadHandle = CreateThread(0, 0, ThreadProc, str, 0, &threadID);
@@ -182,36 +196,34 @@ int CALLBACK WinMain(
 				       hInstance,
 				       NULL);
 		if(WindowHandle){
-			int xoffset = 0;
-			int yoffset = 0;
+		
 			Running = true; 
 			while(Running){
 				MSG Message;
-				while(PeekMessage(&Message, 0, 0, 0, PM_REMOVE)){
+				//윈도우가 열린뒤에 소리 로드;
+				initDSound(); 
+				
+				//수행후에는 메시지가 제거되고 0을 반환함으로 메시지가 있을 경우에만 수행된다.
+				//만약 화면을 리사이징하고자 가장자리를 클릭했다고하자 다음 루프가 돌면서
+				//빠저나오지 않고 계속 winporc 콜백 함수를 호출하게 될 것이다.
+				while(PeekMessage(&Message, 0, 0, 0, PM_REMOVE)){ 
 					if(Message.message == WM_QUIT){
 						Running = false;
 					}
 					TranslateMessage(&Message);
 					DispatchMessage(&Message);
 				}
-				if( xoffset<=255 || yoffset<=255 )
-				{
-					xoffset++;
-					yoffset++;
-				}
-				else
-				{
-					xoffset = 0;
-					yoffset = 0;
-				}
-
+				
+				
+				xoffset++;
 
 				HDC hdc = GetDC(WindowHandle);
 				RECT rect;
+
 				GetClientRect(WindowHandle, &rect);
 				int wndWidth = rect.right - rect.left;
 				int wndHeight = rect.bottom - rect.top;
-				ResizeDIBSection(gBitmapBuffer, wndWidth, wndHeight);			 
+				//ResizeDIBSection(gBitmapBuffer, wndWidth, wndHeight);  
 				RenderWindow(gBitmapBuffer, xoffset, yoffset);
 				MyUpdateWindow(hdc, gBitmapBuffer, 0, 0,  wndWidth, wndHeight);
 				ReleaseDC(WindowHandle, hdc);
@@ -252,19 +264,18 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 		break;
 	case WM_ACTIVATEAPP:
 		break;
-	case WM_CHAR:
-		if((TCHAR)wParam== 32){
-			len = strlen(str);
-			str[len] = ' ';
-			str[len+1] = 0;
-		}
-		else{
-			len = strlen(str);
-			str[len]=(TCHAR)wParam;
-			str[len+1]=0;
-		}
-		InvalidateRect(hWnd,NULL,true);
-		return 0;
+	case WM_KEYDOWN:
+	{
+		if(wParam == VK_RIGHT)
+			xoffset+=10;
+		else if(wParam == VK_LEFT)
+			xoffset-=10;
+		else if(wParam == VK_UP)
+			yoffset+=10;
+		else if(wParam == VK_DOWN)
+			yoffset-=10;
+		break;
+	}
 	case WM_PAINT:
 	{
 		hdc=BeginPaint(hWnd,&ps);
@@ -275,7 +286,6 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 		RECT ClientRect;
 		GetClientRect(hWnd, &ClientRect);		
 		MyUpdateWindow(hdc, gBitmapBuffer, X, Y, Width, Height);
-		TextOut(hdc,100,100,str,strlen(str));		
 		EndPaint(hWnd,&ps);
 		return 0;
 	}
