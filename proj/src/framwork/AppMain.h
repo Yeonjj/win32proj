@@ -52,56 +52,73 @@ int ApplicationManager::setRunLoop()
 	
 	return 0;
 }
+
 //===================================================================================================
-class msgfuncfactory
+class MessageHandler
 {
 private:
-	UNIT message;
+	UINT message;
+	//TODO: RAII pointer로 바꾸기 
+	vector <UINT> messageStack;
 public:
-	virtual void dothis() = 0;
-	virtual void getMessage();
-	virtual void setMessage();
+	inline MessageHandler(UINT _message ){ setMessage(_message); addMsgToStack(_message); } 
+	inline virtual void addMsgToStack(UINT _message) { messageStatck.push_back(_message); }
+	inline virtual UINT getMessage(){ return message; }
+	inline virtual void setMessage(UINT _message){ message = _message; }
+	virtual void handleMessage() = 0;
 };
 
-class WMQUITmsg : public msgfuncfactory
+class WMQUITmsg : public MessageHandler
 {
  public:
-	void dothis();
-}
-WMQUITmsg::WMQUITmsg()
-{
-	setMessage(WM_QUIT);
-}
+	inline WMQUITmsg() : MessageHandler() {}
+        virtual ~WMQUITmsg() = default;
+	void handleMessage();
+};
 
-void WMQUITmsg::dothis()
+void WMQUITmsg::handleMessage()
 {
 	::PostQuitMessage(0);
 }
 
+class WMCLOSEmsg : public MessageHandler
+{
+public:
+	inline WMCLSOEmsg() :MessageHandler() {}
+	virtual ~WMCLOSEmsg() = default;
+	void handleMessage();
+};
 
+void WMQUITmsg::handleMessage()
+{
+	::PostQuitMessage(0);
+}
 
 class EventHandler
 {
 public:
 	void runEventLoop(UINT _message);
-	inline void resisterMessage(msgFuncfacktory msgimpl){ msgs.push_back(msgimpl); }
+	inline void useMessage(MessageHandler newHandler){ msgs.push_back(newHandler); }
 private:
-	vector<msgFuncfactory> msgs;
+	vector<MessageHandler *> msgs;
 };
 
 void EventHandler::runEventLoop(UINT _message)
 {
-	WMQUITmsg WM_QUIT; // TODO:: RAII 사용하기 
-	resisterMessage(WM_QUIT)
 	for(auto it: msgs)
 	{
 		if(it->getmessage == _message)
 		{
-			it->dothis
+			it->dothis();
 		}
 	}
 }
 
+//somewhere outthere
+global_vrialble EventHandler gEventHandler; // TODO:: RAII 사용하기 pointer로 바꾸기
+WMQUITmsg WM_QUIT; // TODO:: RAII 사용하기 
+gEventHandler->useMessage(WM_QUIT);
+	
 //===================================================================================================
 class KeyManager
 {
@@ -122,7 +139,7 @@ inline Internal_vaild LRESULT CALLBACK WindowProcedure(	HWND hwnd,
 							LPARAM lParam)
 {
 	//TODO: call event manager
-	
+	gEventHandler->runEventLoop(message);
 	return ::DefWindowProc(hwnd, message, wParam, lParam);
 }
 
