@@ -5,12 +5,12 @@ class WindowMaker
 {
 public:
 	WindowMaker() : _windowHandle(0) {}
-	inline WindowMaker(wchar_t const * className, HINSTANCE hInstance)
+	inline WindowMaker(char const * className, HINSTANCE hInstance)
 	{
 		_windowHandle = ::CreateWindowEx(
 			NULL,
 			className,
-			L"win32proj",
+			"win32proj",
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
@@ -20,6 +20,7 @@ public:
 			NULL,
 			hInstance,
 			NULL);
+		//assert(_windowHandle);
 	}		
 protected:
 	HWND _windowHandle;

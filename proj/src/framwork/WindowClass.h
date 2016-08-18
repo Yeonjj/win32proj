@@ -1,3 +1,4 @@
+
 #pragma once
 #include "preheaderinclude.h"
 //create windowclass and register
@@ -5,7 +6,7 @@ class WindowClass
 {
 public:
 	inline WindowClass(WNDPROC winProc,
-		const wchar_t* className,
+		const char* className,
 		HINSTANCE hInstance)
 	{
 		_winclass = {0};
@@ -18,7 +19,7 @@ public:
 	}
 	inline bool Register()
 	{
-		if(::RegisterClassW(&_winclass)) return true;
+		if(::RegisterClass(&_winclass)) return true;
 		else return false;
 	}
 private:
