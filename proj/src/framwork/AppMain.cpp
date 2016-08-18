@@ -1,8 +1,8 @@
 #include "AppMain.h"
 
 static EventHandler gEventHandler;
-ApplicationManager*  ApplicationManager::AppManger;
 
+ApplicationManager*  ApplicationManager::AppManger;
 ApplicationManager::ApplicationManager()
 {
 	//TODO: runloop의 루프를 잘게나눠서 첫번째 루프안에 다른 사항들을 추가할 수 있도록 feature 추가하기.
@@ -44,32 +44,35 @@ ApplicationManager* ApplicationManager::getAppManger()
 }
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, 
-					UINT message, 
-					WPARAM wParam, 
-					LPARAM lParam)
+				 UINT message, 
+				 WPARAM wParam, 
+				 LPARAM lParam)
 {
 	//TODO: call event manager
 	//TODO: message setting
 	if(!gEventHandler.runMessageLoop(message))
-		::DefWindowProc(hwnd, message, wParam, lParam);
+		return ::DefWindowProc(hwnd, message, wParam, lParam);
 	return 0;
 }
 
 int ApplicationMain (HINSTANCE hInst,
-			    HINSTANCE hPrevInst,
-			    char * cmdParam,
-			    int cmdShow)
+		     HINSTANCE hPrevInst,
+		     char *cmdParam,
+		     int cmdShow,
+		     const char *className)
 {
-	//싱글톤 객체 생성 
+	//싱글톤 객체 생성
 	ApplicationManager* AppManager = ApplicationManager::getAppManger();
-
-	char className[] = "testingproj";
-
+	
+	//char className[] = "testingproj";
+	//TODO: 1. initialize windowclass and register
 	WindowClass winClass(WindowProcedure, className, hInst);
 	if(winClass.Register())
 	{
+	//TODO: 2. initialize window instance and create window
 		WindowMaker win(className, hInst);
 		AppManager->setMessages();
+	//TODO: 3. set message loop
 		AppManager->setRunLoop();
 	}		
 	return 0;

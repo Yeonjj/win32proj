@@ -15,3 +15,4 @@ void WMDESTROYmsg::handleMessage()
 {
 	::PostQuitMessage(0);
 }
+

@@ -15,12 +15,10 @@ public:
 		_winclass.lpfnWndProc = winProc;
 		_winclass.lpszClassName = className;
 		_winclass.hCursor = LoadCursor(NULL, IDC_CROSS);
- 
-	}
-	inline bool Register()
+ 	}
+	inline ATOM Register()
 	{
-		if(::RegisterClass(&_winclass)) return true;
-		else return false;
+		return ::RegisterClass(&_winclass);
 	}
 private:
 	WNDCLASS _winclass;
